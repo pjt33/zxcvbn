@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# execute as
+#   ./compile_and_minify.sh test
+# to compile for test/index.html
+
 # the coffee compiler adds a function wrapper by default.
 # i add one myself manually because zxcvbn.js is built from a mix of .cs and .js files.
 function_wrap () {
@@ -9,7 +13,12 @@ function_wrap () {
 
 echo 'compiling cs -> js'
 coffee --compile --bare {matching,scoring,init}.coffee
-coffee --compile async.coffee
+if [ "x$1" = "xtest" ]
+then
+	sed 's%http://.*/zxcvbn.js%../zxcvbn.js%' async.coffee | coffee --compile --stdio >async.js
+else
+	coffee --compile async.coffee
+fi
 
 echo 'compiling js -> js'
 # closure's simple optimizations ended up being about 200k better than whitespace-only.
