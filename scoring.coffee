@@ -1,14 +1,18 @@
 
-nCk = (n, k) ->
-  # http://blog.plover.com/math/choose.html
-  return 0 if k > n
-  return 1 if k == 0
-  r = 1
-  for d in [1..k]
-    r *= n
-    r /= d
-    n -= 1
-  r
+# Memoised implementation of \sum_{i=0}^k \binom{n}{i} q^i
+memo = []
+weightedBinomialSum = (n, k, q) ->
+  # Not actually needed unless there's a bug elsewhere
+  return 0 if k < 0
+  # Default to simple sum of binomials as the most common case
+  q ?= 1
+  tbl = (memo[q] ?= [[1]])
+  for i in [tbl.length..n+1]
+    prevRow = tbl[i-1]
+    tbl[i] = row = []
+    for j in [0..i]
+      row[j] = (q * prevRow[j-1] or 0) + (prevRow[j] or prevRow[i-1])
+  tbl[n][k] or tbl[n][n]
 
 lg = (n) -> Math.log(n) / Math.log(2)
 
@@ -176,8 +180,7 @@ spatial_entropy = (match) ->
   # estimate the number of possible patterns w/ length L or less with t turns or less.
   for i in [2..L]
     possible_turns = Math.min(t, i - 1)
-    for j in [1..possible_turns]
-      possibilities += nCk(i - 1, j - 1) * s * Math.pow(d, j)
+    possibilities += s * d * weightedBinomialSum(i - 1, possible_turns - 1, d)
   entropy = lg possibilities
   # add extra entropy for shifted keys. (% instead of 5, A instead of a.)
   # math is similar to extra entropy from uppercase letters in dictionary matches.
@@ -185,7 +188,7 @@ spatial_entropy = (match) ->
     S = match.shifted_count
     U = match.token.length - match.shifted_count # unshifted count
     possibilities = 0
-    possibilities += nCk(S + U, i) for i in [0..Math.min(S, U)]
+    possibilities += weightedBinomialSum(S + U, Math.min(S, U))
     entropy += lg possibilities
   entropy
 
@@ -213,7 +216,7 @@ extra_uppercase_entropy = (match) ->
   U = (chr for chr in word.split('') when chr.match /[A-Z]/).length
   L = (chr for chr in word.split('') when chr.match /[a-z]/).length
   possibilities = 0
-  possibilities += nCk(U + L, i) for i in [0..Math.min(U, L)]
+  possibilities += weightedBinomialSum(U + L, Math.min(U, L))
   lg possibilities
 
 extra_l33t_entropy = (match) ->
@@ -222,7 +225,7 @@ extra_l33t_entropy = (match) ->
   for subbed, unsubbed of match.sub
     S = (chr for chr in match.token.split('') when chr == subbed).length   # number of subbed characters.
     U = (chr for chr in match.token.split('') when chr == unsubbed).length # number of unsubbed characters.
-    possibilities += nCk(U + S, i) for i in [0..Math.min(U, S)]
+    possibilities += weightedBinomialSum(U + S, Math.min(U, S))
   # corner: return 1 bit for single-letter subs, like 4pple -> apple, instead of 0.
   lg(possibilities) or 1
 
