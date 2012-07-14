@@ -1,11 +1,9 @@
 
 # Memoised implementation of \sum_{i=0}^k \binom{n}{i} q^i
 memo = []
-weightedBinomialSum = (n, k, q) ->
+weightedBinomialSum = (n, k, q = 1) ->
   # Not actually needed unless there's a bug elsewhere
   return 0 if k < 0
-  # Default to simple sum of binomials as the most common case
-  q ?= 1
   tbl = (memo[q] ?= [[1]])
   for i in [tbl.length..n+1]
     prevRow = tbl[i-1]
